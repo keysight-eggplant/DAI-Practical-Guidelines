@@ -1,0 +1,49 @@
+﻿// Returns BOOL for whether an image or text remains on-screen.
+-- Note: Can reuse search metrics utilized by all native SenseTalk image and text searches.
+-- Example: assert that imageDisappeared(text: "My Website Title")
+function imageDisappeared searchMetrics
+	set the strictProperties to false
+	
+	// if handler is called with only an image path, turn it into a property list
+	if searchMetrics is NOT a property list then set searchMetrics to (image: searchMetrics)
+	
+	if property image of searchMetrics is NOT empty OR if property imageName of searchMetrics is NOT empty
+		put true into isSearchingForImage
+		if property image of searchMetrics is NOT empty 
+			put property image of searchMetrics into targetElement
+		else
+			put property imageName of searchMetrics into targetElement
+		end if
+	else
+		put false into isSearchingForImage
+		put property text of searchMetrics into targetElement
+	end if
+	
+	// extract timeout value
+	put property waitFor of searchMetrics into timeoutValue
+	if timeoutValue is empty then set timeoutValue to 10.0
+	put now + timeoutValue into endTime
+	put 0.0 into property waitFor of searchMetrics // don't wait for it if it's not found
+	
+	repeat until the time is later than endTime
+		if imageFound(searchMetrics)
+			next repeat
+		else
+			if isSearchingForImage 
+				Log !<<The image '[[targetElement]]' is no longer visible on-screen.>>
+			else 
+				Log !<<The text '[[targetElement]]' is no longer visible on-screen.>>
+			end if
+			
+			return true
+		end if
+	end repeat
+	
+	if isSearchingForImage 
+		LogWarning !<<The image '[[targetElement]]'still found after [[timeoutValue]] second(s).>>
+	else 
+		LogWarning !<<Text '[[targetElement]]' still found after [[timeoutValue]] second(s).>>
+	end if
+	
+	return false
+end imageDisappeared
